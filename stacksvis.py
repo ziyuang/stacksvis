@@ -60,7 +60,7 @@ def combine_force_json(folder='force', save_to='force.json'):
         node['parents'] = list(node['parents'])
     graph['links'] = [{'source': source, 'target': target} for source, target in links]
     with open(save_to, 'w') as f:
-        json.dump(graph, f)
+        json.dump(graph, f, sort_keys=True, indent=4)
 
 
 def chord_diagram_matrices(force_json_path, save_to='chord_diagram.json'):
@@ -108,10 +108,10 @@ def chord_diagram_matrices(force_json_path, save_to='chord_diagram.json'):
             chapter_mat[source_idx, target_idx] += 1
     topic_mat = t2c.dot(chapter_mat).dot(t2c.T)
     with open(save_to, 'w') as f:
-        json.dump({'topics': topics, 'topic_matrix': topic_mat.tolist(), 'chapters': chapters, 'chapter_matrix': chapter_mat.tolist()}, f)
+        json.dump({'topics': topics, 'topic_matrix': topic_mat.tolist(), 'chapters': chapters, 'chapter_matrix': chapter_mat.tolist()}, f, sort_keys=True, indent=4)
 
 
 if __name__ == '__main__':
     # get_graph_json()
-    # combine_force_json(folder='force', save_to='force.json')
+    combine_force_json(folder='force', save_to='force.json')
     chord_diagram_matrices('force.json', save_to='chord_diagram.json')
