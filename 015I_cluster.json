@@ -1,0 +1,177 @@
+{
+  "chapter": "Derived Categories", 
+  "numberOfChildren": 14, 
+  "file": "derived", 
+  "tag": "015I", 
+  "tagName": "", 
+  "book_id": "13.21.2", 
+  "section": "Cartan-Eilenberg resolutions", 
+  "type": "lemma", 
+  "children": [
+    {
+      "chapter": "Derived Categories", 
+      "numberOfChildren": 13, 
+      "file": "derived", 
+      "tag": "013T", 
+      "tagName": "", 
+      "book_id": "13.18.9", 
+      "section": "Injective resolutions", 
+      "type": "lemma", 
+      "children": [
+        {
+          "chapter": "Homological Algebra", 
+          "numberOfChildren": 1, 
+          "tagName": "", 
+          "tag": "011J", 
+          "file": "homology", 
+          "book_id": "12.14.10", 
+          "section": "Homotopy and the shift functor", 
+          "type": "lemma", 
+          "size": 2000
+        }, 
+        {
+          "chapter": "Homological Algebra", 
+          "numberOfChildren": 1, 
+          "tagName": "", 
+          "tag": "0136", 
+          "file": "homology", 
+          "book_id": "12.23.2", 
+          "section": "Injectives", 
+          "type": "lemma", 
+          "size": 2000
+        }, 
+        {
+          "chapter": "Derived Categories", 
+          "numberOfChildren": 4, 
+          "file": "derived", 
+          "tag": "013P", 
+          "tagName": "", 
+          "book_id": "13.18.6", 
+          "section": "Injective resolutions", 
+          "type": "lemma", 
+          "children": [
+            {
+              "chapter": "Derived Categories", 
+              "numberOfChildren": 1, 
+              "tagName": "", 
+              "tag": "013N", 
+              "file": "derived", 
+              "book_id": "13.9.6", 
+              "section": "Cones and termwise split sequences", 
+              "type": "lemma", 
+              "size": 2000
+            }, 
+            {
+              "chapter": "Derived Categories", 
+              "numberOfChildren": 1, 
+              "tagName": "", 
+              "tag": "05TF", 
+              "file": "derived", 
+              "book_id": "13.18.5", 
+              "section": "Injective resolutions", 
+              "type": "remark", 
+              "size": 2000
+            }, 
+            {
+              "chapter": "Derived Categories", 
+              "numberOfChildren": 1, 
+              "tagName": "Injective resolutions", 
+              "tag": "013Q", 
+              "file": "derived", 
+              "book_id": "13.18.6.1", 
+              "section": "Injective resolutions", 
+              "type": "equation", 
+              "size": 2000
+            }
+          ], 
+          "size": 2000
+        }, 
+        {
+          "chapter": "Homological Algebra", 
+          "numberOfChildren": 1, 
+          "tagName": "", 
+          "tag": "0114", 
+          "file": "homology", 
+          "book_id": "12.12.9", 
+          "section": "Complexes", 
+          "type": "lemma", 
+          "size": 2000
+        }, 
+        {
+          "chapter": "Derived Categories", 
+          "numberOfChildren": 5, 
+          "file": "derived", 
+          "tag": "013K", 
+          "tagName": "", 
+          "book_id": "13.18.3", 
+          "section": "Injective resolutions", 
+          "type": "lemma", 
+          "children": [
+            {
+              "chapter": "Derived Categories", 
+              "numberOfChildren": 3, 
+              "file": "derived", 
+              "tag": "05T6", 
+              "tagName": "", 
+              "book_id": "13.16.4", 
+              "section": "Derived functors on derived categories", 
+              "type": "lemma", 
+              "children": [
+                {
+                  "chapter": "Derived Categories", 
+                  "numberOfChildren": 1, 
+                  "tagName": "Derived functors on derived categories", 
+                  "tag": "013L", 
+                  "file": "derived", 
+                  "book_id": "13.16.4.1", 
+                  "section": "Derived functors on derived categories", 
+                  "type": "equation", 
+                  "size": 2000
+                }, 
+                {
+                  "chapter": "Homological Algebra", 
+                  "numberOfChildren": 1, 
+                  "tagName": "Truncation of complexes", 
+                  "tag": "0118", 
+                  "file": "homology", 
+                  "book_id": "12.13", 
+                  "section": "Truncation of complexes", 
+                  "type": "section", 
+                  "size": 2000
+                }
+              ], 
+              "size": 2000
+            }, 
+            {
+              "chapter": "Derived Categories", 
+              "numberOfChildren": 2, 
+              "file": "derived", 
+              "tag": "013J", 
+              "tagName": "", 
+              "book_id": "13.18.2", 
+              "section": "Injective resolutions", 
+              "type": "lemma", 
+              "children": [
+                {
+                  "chapter": "Homological Algebra", 
+                  "numberOfChildren": 1, 
+                  "tagName": "Truncation of complexes", 
+                  "tag": "0118", 
+                  "file": "homology", 
+                  "book_id": "12.13", 
+                  "section": "Truncation of complexes", 
+                  "type": "section", 
+                  "size": 2000
+                }
+              ], 
+              "size": 2000
+            }
+          ], 
+          "size": 2000
+        }
+      ], 
+      "size": 2000
+    }
+  ], 
+  "size": 2000
+}

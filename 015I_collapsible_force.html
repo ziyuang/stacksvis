@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.node rect {
+  stroke-width: 0;
+}
+
+.node text {
+  cursor: -moz-grab;
+  cursor: -webkit-grab;
+  cursor: grab;
+  font: 10px sans-serif;
+}
+
+polyline.link {
+  fill: none;
+  stroke: #9ecae1;
+  stroke-width: 1.5px;
+}
+
+marker#arrow {
+  fill: #777;
+}
+
+</style>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+
+var width = 600,
+    height = 600,
+    root;
+
+var force = d3.layout.force()
+    .linkDistance(80)
+    .charge(-120)
+    .gravity(.05)
+    .size([width, height])
+    .on("tick", tick);
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+svg.append("svg:defs").selectAll("marker")
+    .data(["arrow"])
+    .enter().append("svg:marker")
+    .attr("id", String)
+    .attr("viewBox", "0 -5 10 10")
+    .attr("refX", 15)
+    .attr("refY", -1.5)
+    .attr("markerWidth", 6)
+    .attr("markerHeight", 6)
+    .attr("orient", "auto")
+  .append("svg:path")
+    .attr("d", "M0,-5L10,0L0,5");
+
+var link = svg.selectAll(".link"),
+    node = svg.selectAll(".node");
+
+d3.json("015I_collapsible.json", function(error, json) {
+  if (error) throw error;
+
+  root = json;
+  update();
+});
+
+function displayText(d) {
+  if (d.nodeType == 'root' || !d.children)
+    return d.tag;
+  else
+    return d.tagName;
+}
+
+// From http://stackoverflow.com/a/21015393/688080
+function getTextWidth(text, font) {
+    // re-use canvas object for better performance
+    var canvas = getTextWidth.canvas || (getTextWidth.canvas = document.createElement("canvas"));
+    var context = canvas.getContext("2d");
+    context.font = font;
+    var metrics = context.measureText(text);
+    return metrics.width;
+};
+
+function update() {
+  var nodes = flatten(root),
+      links = d3.layout.tree().links(nodes);
+
+  // Restart the force layout.
+  force
+      .nodes(nodes)
+      .links(links)
+      .start();
+
+  // Update links.
+  link = link.data(links, function(d) { return d.target.id; });
+
+  link.exit().remove();
+
+  link.enter().insert("polyline", ".node")
+      .attr("class", "link")
+      .attr("marker-mid", "url(#arrow)");
+
+  // Update nodes.
+  node = node.data(nodes, function(d) { return d.id; });
+
+  node.exit().remove();
+
+  var nodeEnter = node.enter().append("g")
+      .attr("class", "node")
+      .on("click", click)
+      .call(force.drag);
+
+  var rect_height = 16;
+  var char_width = 6;
+  var font = 10;
+  var text_margin = 4;
+
+  nodeEnter.append("rect")
+      .attr("width", function(d) {
+        return getTextWidth(displayText(d), font) + text_margin;
+      })
+      .attr("height", rect_height)
+      .attr("x", function(d) {
+        return -(getTextWidth(displayText(d), font)+text_margin)/2;
+      })
+      .attr("y", -rect_height/2);
+
+  nodeEnter.append("text")
+      .attr("dy", ".35em")
+      .attr("text-anchor", "middle")
+      .text(displayText);
+
+  node.select("rect")
+      .style("fill", color);
+}
+
+function tick() {
+  link.attr("points", function(d) {
+      var mid_x = (d.source.x + d.target.x) / 2;
+      var mid_y = (d.source.y + d.target.y) / 2;
+      var points = d.source.x + "," + d.source.y + " " + mid_x + "," + mid_y + " " + d.target.x + "," + d.target.y;
+      return points;
+    });
+
+  node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+}
+
+function color(d) {
+  return d._children ? "#3182bd" // collapsed package
+      : d.children ? "#c6dbef" // expanded package
+      : "#fd8d3c"; // leaf node
+}
+
+// Toggle children on click.
+function click(d) {
+  if (d3.event.defaultPrevented) return; // ignore drag
+  if (d.children) {
+    d._children = d.children;
+    d.children = null;
+  } else {
+    d.children = d._children;
+    d._children = null;
+  }
+  update();
+}
+
+// Returns a list of all nodes under the root.
+function flatten(root) {
+  var nodes = [], i = 0;
+
+  function recurse(node) {
+    if (node.children) node.children.forEach(recurse);
+    if (!node.id) node.id = ++i;
+    nodes.push(node);
+  }
+
+  recurse(root);
+  return nodes;
+}
+
+</script>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.link {
+  stroke: #bbb;
+}
+
+.node rect {
+  stroke-width: 0;
+  fill: #fff;
+}
+
+.node text {
+  cursor: -moz-grab;
+  cursor: -webkit-grab;
+  cursor: grab;
+  font: 10px sans-serif;
+}
+
+</style>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+
+var width = 600,
+    height = 600
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+svg.append("svg:defs").selectAll("marker")
+    .data(["arrow"])
+    .enter().append("svg:marker")
+    .attr("id", String)
+    .attr("viewBox", "0 -5 10 10")
+    .attr("refX", 15)
+    .attr("refY", -1.5)
+    .attr("markerWidth", 6)
+    .attr("markerHeight", 6)
+    .attr("orient", "auto")
+  .append("svg:path")
+    .attr("d", "M0,-5L10,0L0,5");
+
+var force = d3.layout.force()
+    .gravity(0.05)
+    .distance(100)
+    .charge(-100)
+    .size([width, height]);
+
+d3.json("015I_force.json", function(error, json) {
+  if (error) throw error;
+
+  force
+      .nodes(json.nodes)
+      .links(json.links)
+      .start();
+
+  var link = svg.selectAll(".link")
+      .data(json.links)
+    .enter().append("polyline")
+      .attr("class", "link")
+      .attr("marker-mid", "url(#arrow)");
+
+  var node = svg.selectAll(".node")
+      .data(json.nodes)
+    .enter().append("g")
+      .attr("class", "node")
+      .call(force.drag);
+
+  var rect_width = 22;
+  var rect_height = 16;
+
+  node.append("rect")
+      .attr("width", rect_width)
+      .attr("height", rect_height)
+      .attr("x", -rect_width/2)
+      .attr("y", -rect_height/2);
+
+  node.append("text")
+      .attr("dx", 0)
+      .attr("dy", ".35em")
+      .attr("text-anchor", "middle")
+      .text(function(d) { return d.tag });
+
+  force.on("tick", function() {
+    
+    link.attr("points", function(d) {
+      var mid_x = (d.source.x + d.target.x) / 2;
+      var mid_y = (d.source.y + d.target.y) / 2;
+      var points = d.source.x + "," + d.source.y + " " + mid_x + "," + mid_y + " " + d.target.x + "," + d.target.y;
+      return points;
+    });
+
+    node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+  });
+});
+
+</script>
