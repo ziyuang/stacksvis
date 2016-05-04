@@ -113,5 +113,6 @@ def chord_diagram_matrices(force_json_path, save_to='chord_diagram.json'):
 
 if __name__ == '__main__':
     # get_graph_json()
-    combine_force_json(folder='force', save_to='force.json')
+    # combine_force_json(folder='force', save_to='force.json')
     chord_diagram_matrices('force.json', save_to='chord_diagram.json')
+

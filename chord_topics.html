@@ -60,7 +60,7 @@ d3.json("chord_diagram.json", function(error, data) {
       .on("mouseover", fade(.05))
       .on("mouseout", fade(1));
 
-  // quad2angle = [90, -95, -95, 85];
+  // var quad2angle = [90, -95, -95, 85];
   g.append("text")
       .each(function(d) { d.angle = (d.startAngle + d.endAngle) / 2; })
       .attr("dy", ".35em")

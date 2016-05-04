@@ -10,23 +10,71 @@ body {
   fill-opacity: .67;
 }
 
+.arc-topics, text {
+  pointer-events: none
+}
+
 </style>
 <body>
 <script src="http://d3js.org/d3.v3.min.js"></script>
 <script>
 
-var outerRadius = 1000 / 2,
+var outerRadius = 900 / 2,
     innerRadius = outerRadius - 200;
 
-var fill = d3.scale.category20c();
+var fill_chapters = d3.scale.category20c();
+var fill_topics = d3.scale.category10();
 
-var chord = d3.layout.chord()
+var faded_opacity = 0.05;
+
+var chord_chapters = d3.layout.chord()
     .padding(.02)
     .sortChords(d3.descending);
 
-var arc = d3.svg.arc()
+var arc_chapters = d3.svg.arc()
     .innerRadius(innerRadius)
-    .outerRadius(innerRadius + 20);
+    .outerRadius(innerRadius + 30);
+
+var chord_topics = d3.layout.chord()
+    .padding(.02)
+    .sortChords(d3.descending);
+
+var arc_topics = d3.svg.arc()
+    .innerRadius(innerRadius + 25)
+    .outerRadius(outerRadius);
+
+// same as arc_chapters
+var arc_topics2 = d3.svg.arc()
+    .innerRadius(innerRadius)
+    .outerRadius(innerRadius + 30);
+
+var simple_arc = function(r, th1, th2, sweep) {
+  var extent = Math.PI / 12;
+  var sign = Math.sign(th2-th1);
+  var start_x = r * Math.cos(th1-sign*extent);
+  var start_y = r * Math.sin(th1-sign*extent);
+  var end_x = r * Math.cos(th2+sign*extent);
+  var end_y = r * Math.sin(th2+sign*extent);
+  var m = "M" + start_x + "," + start_y;
+  var a = "A" + r + "," + r + ",0,0," + sweep + "," + end_x + "," + end_y;
+  return m + a;
+}
+
+var path_topic_texts_inner_flipped = function(d, i) {
+  var radius = outerRadius - 5;
+  return simple_arc(radius, d.endAngle-Math.PI/2, d.startAngle-Math.PI/2, 0);
+}
+
+
+var path_topic_texts_inner = function(d, i) {
+  var radius = outerRadius - 15;
+  return simple_arc(radius, d.startAngle-Math.PI/2, d.endAngle-Math.PI/2, 1);
+}
+
+var path_topic_texts_outer = function(d, i) {
+  var radius = outerRadius + 5;
+  return simple_arc(radius, d.startAngle-Math.PI/2, d.endAngle-Math.PI/2, 1);
+}
 
 var svg = d3.select("body").append("svg")
     .attr("width", outerRadius * 2)
@@ -34,49 +82,184 @@ var svg = d3.select("body").append("svg")
     .append("g")
     .attr("transform", "translate(" + outerRadius + "," + outerRadius + ")");
 
-function fade(opacity) {
+function fade_chapters(opacity) {
   return function(g, i) {
-    svg.selectAll("path.chord")
+    svg.selectAll("path.chord-chapters")
         .filter(function(d) { return d.source.index != i && d.target.index != i; })
         .transition()
         .style("opacity", opacity);
   };
 }
 
+var topic_text_default_opacity = 0.7;
+
+function topic_mouseover(g, i) {
+  svg.selectAll("path.chord-chapters")
+     .transition()
+     .style("opacity", 0);
+
+  svg.selectAll("path.chord-topics")
+      .filter(function(d) { return d.source.index == i || d.target.index == i; })
+      .transition()
+      .style("opacity", 1);
+
+  svg.selectAll("path.arc-chapters")
+     .transition()
+     .style("opacity", 0);
+
+  svg.selectAll("path.arc-topics")
+     .transition()
+     .style("opacity", 1);
+
+  svg.select("#topic-text-" + i)
+     .style("opacity", 1);
+}
+
+function topic_mouseout(g, i) {
+  svg.selectAll("path.chord-chapters")
+     .transition()
+     .style("opacity", 1);
+
+  svg.selectAll("path.chord-topics")
+      .transition()
+      .style("opacity", 0);
+
+  svg.selectAll("path.arc-chapters")
+     .transition()
+     .style("opacity", 1);
+
+  svg.selectAll("path.arc-topics")
+     .transition()
+     .style("opacity", 0);
+
+  svg.select("#topic-text-" + i)
+     .style("opacity", topic_text_default_opacity);
+}
+
 d3.json("chord.json", function(error, data) {
   if (error) throw error;
   var chapters = data['chapters'];
-  var matrix = data['chapter_matrix'];
-  chord.matrix(matrix);
-  var g = svg.selectAll(".group")
-      .data(chord.groups)
+  var topics = data['topics'];
+  chord_chapters.matrix(data['chapter_matrix']);
+  chord_topics.matrix(data['topic_matrix']);
+
+  var defs = svg.append("defs");
+
+  defs.selectAll(".text-inner-flipped")
+      .data(chord_topics.groups)
+      .enter()
+      .append("path")
+      .attr("class", "text-inner-flipped")
+      .attr("id", function(d) {
+        return "topic-texts-inner-flipped-" + d.index;
+      })
+      .attr("d", path_topic_texts_inner_flipped);
+
+  defs.selectAll(".text-inner")
+      .data(chord_topics.groups)
+      .enter()
+      .append("path")
+      .attr("class", "text-inner")
+      .attr("id", function(d) {
+        return "topic-texts-inner-" + d.index;
+      })
+      .attr("d", path_topic_texts_inner);
+
+  defs.selectAll(".text-outer")
+      .data(chord_topics.groups)
+      .enter()
+      .append("path")
+      .attr("class", "text-outer")
+      .attr("id", function(d) {
+        return "topic-texts-outer-" + d.index;
+      })
+      .attr("d", path_topic_texts_outer);
+
+  var g = svg.selectAll(".group-chapters")
+      .data(chord_chapters.groups)
       .enter().append("g")
-      .attr("class", "group");
+      .attr("class", "group-chapters");
 
   g.append("path")
-      .style("fill", function(d) { return fill(d.index); })
-      .style("stroke", function(d) { return fill(d.index); })
-      .attr("d", arc)
-      .on("mouseover", fade(.05))
-      .on("mouseout", fade(1));
+      .style("fill", function(d) { return fill_chapters(d.index); })
+      .style("stroke", function(d) { return fill_chapters(d.index); })
+      .attr("d", arc_chapters)
+      .attr("class", "arc-chapters")
+      .on("mouseover", fade_chapters(faded_opacity))
+      .on("mouseout", fade_chapters(1));
+
+  var g_topics = svg.selectAll(".group-topics")
+      .data(chord_topics.groups)
+      .enter().append("g")
+      .attr("class", "group-topics");
+
+  g_topics.append("path")
+      .style("fill", function(d) { return fill_topics(d.index); })
+      .style("stroke", function(d) { return fill_topics(d.index); })
+      .style("opacity", faded_opacity)
+      .attr("d", arc_topics)
+      .on("mouseover", topic_mouseover)
+      .on("mouseout", topic_mouseout);
+
+
+  g_topics.append("path")
+        .style("fill", function(d) { return fill_topics(d.index); })
+        .style("stroke", function(d) { return fill_topics(d.index); })
+        .style("opacity", 0)
+        .attr("d", arc_topics2)
+        .attr("class", "arc-topics");
+
 
   g.append("text")
       .each(function(d) { d.angle = (d.startAngle + d.endAngle) / 2; })
       .attr("dy", ".35em")
       .attr("transform", function(d) {
         return "rotate(" + (d.angle * 180 / Math.PI - 90) + ")"
-            + "translate(" + (innerRadius + 26) + ")"
+            + "translate(" + (innerRadius + 35) + ")"
             + (d.angle > Math.PI ? "rotate(180)" : "");
       })
       .style("text-anchor", function(d) { return d.angle > Math.PI ? "end" : null; })
       .text(function(d) { return chapters[d.index]; });
 
-  svg.selectAll(".chord")
-      .data(chord.chords)
+  g_topics.append("text")
+      .style("text-anchor", "middle")
+      .style("font-size", 15)
+      .style("fill", "#aaa")
+      .style("opacity", topic_text_default_opacity)
+      .attr("id", function(d) {
+        return "topic-text-" + d.index;
+      })
+    .append("textPath")
+      .attr("startOffset", "50%")
+      .attr("xlink:href", function(d) {
+        var degree = (d.startAngle + d.endAngle) / 2;
+        degree = degree * 180 / Math.PI;
+        if (d.index != 5) {
+          if (degree < 90 || degree > 270)
+            return "#topic-texts-inner-" + d.index; 
+          else
+            return "#topic-texts-inner-flipped-" + d.index;
+        }
+        else
+          return "#topic-texts-outer-" + d.index
+      })
+      .text(function(d) { return topics[d.index]; });
+
+  svg.selectAll(".chord-chapters")
+      .data(chord_chapters.chords)
       .enter().append("path")
-      .attr("class", "chord")
-      .style("stroke", function(d) { return d3.rgb(fill(d.source.index)).darker(); })
-      .style("fill", function(d) { return fill(d.source.index); })
+      .attr("class", "chord-chapters")
+      .style("stroke", function(d) { return d3.rgb(fill_chapters(d.source.index)).darker(); })
+      .style("fill", function(d) { return fill_chapters(d.source.index); })
+      .attr("d", d3.svg.chord().radius(innerRadius));
+
+  svg.selectAll(".chord-topics")
+      .data(chord_topics.chords)
+      .enter().append("path")
+      .attr("class", "chord-topics")
+      .style("stroke", function(d) { return d3.rgb(fill_topics(d.source.index)).darker(); })
+      .style("fill", function(d) { return fill_topics(d.source.index); })
+      .style("opacity", 0)
       .attr("d", d3.svg.chord().radius(innerRadius));
 
 });
