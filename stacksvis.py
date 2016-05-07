@@ -111,8 +111,20 @@ def chord_diagram_matrices(force_json_path, save_to='chord_diagram.json'):
         json.dump({'topics': topics, 'topic_matrix': topic_mat.tolist(), 'chapters': chapters, 'chapter_matrix': chapter_mat.tolist()}, f, sort_keys=True, indent=4)
 
 
+def tag_scatter(force_json_path, save_to='scatter.csv'):
+    with open(force_json_path, 'r') as f:
+        nodes = json.load(f)['nodes']
+
+    tags = nodes.keys()
+    scatter_df = pd.DataFrame(np.nan, index=tags, columns=['type', 'referring', 'referred'])
+    for tag, node in nodes.items():
+        scatter_df.loc[tag] = [node['type'], len(node['children']), len(node['parents'])]
+    scatter_df = scatter_df[(scatter_df.referring > 0) & (scatter_df.referred > 0)].sort_index()
+    scatter_df.to_csv(save_to, index_label='tag', float_format='%d')
+
+
 if __name__ == '__main__':
     # get_graph_json()
     # combine_force_json(folder='force', save_to='force.json')
-    chord_diagram_matrices('force.json', save_to='chord_diagram.json')
-
+    # chord_diagram_matrices('force.json', save_to='chord_diagram.json')
+    tag_scatter('force.json', save_to='scatter.csv')
