@@ -63,7 +63,12 @@ d3.json("015I_cluster.json", function(error, root) {
       .attr("dx", function(d) { return d.children ? -8 : 8; })
       .attr("dy", 3)
       .style("text-anchor", function(d) { return d.children ? "end" : "start"; })
-      .text(function(d) { return d.tag; });
+      .text(function(d) { return d.tag; })
+    .append("title")
+      .text(function(d) {
+        var type = d.type.charAt(0).toUpperCase() + d.type.slice(1);
+        return type + " " + d.book_id;
+      })
 });
 
 d3.select(self.frameElement).style("height", height + "px");

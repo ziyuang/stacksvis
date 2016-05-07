@@ -26,6 +26,8 @@ var fill_chapters = d3.scale.category20c();
 var fill_topics = d3.scale.category10();
 
 var faded_opacity = 0.05;
+var topic_text_default_opacity = 0.7;
+var topic_text_default_color = "#aaa";
 
 var chord_chapters = d3.layout.chord()
     .padding(.02)
@@ -36,11 +38,11 @@ var arc_chapters = d3.svg.arc()
     .outerRadius(innerRadius + 30);
 
 var chord_topics = d3.layout.chord()
-    .padding(.02)
+    .padding(0)
     .sortChords(d3.descending);
 
 var arc_topics = d3.svg.arc()
-    .innerRadius(innerRadius + 25)
+    .innerRadius(innerRadius + 35)
     .outerRadius(outerRadius);
 
 // same as arc_chapters
@@ -91,17 +93,19 @@ function fade_chapters(opacity) {
   };
 }
 
-var topic_text_default_opacity = 0.7;
-
 function topic_mouseover(g, i) {
   svg.selectAll("path.chord-chapters")
      .transition()
      .style("opacity", 0);
 
   svg.selectAll("path.chord-topics")
-      .filter(function(d) { return d.source.index == i || d.target.index == i; })
       .transition()
-      .style("opacity", 1);
+      .style("opacity", function(d) {
+        if (d.source.index == i || d.target.index == i)
+          return 1;
+        else
+          return faded_opacity;
+      });
 
   svg.selectAll("path.arc-chapters")
      .transition()
@@ -112,7 +116,8 @@ function topic_mouseover(g, i) {
      .style("opacity", 1);
 
   svg.select("#topic-text-" + i)
-     .style("opacity", 1);
+     .style("opacity", 1)
+     .style("fill", "#777");
 }
 
 function topic_mouseout(g, i) {
@@ -133,7 +138,8 @@ function topic_mouseout(g, i) {
      .style("opacity", 0);
 
   svg.select("#topic-text-" + i)
-     .style("opacity", topic_text_default_opacity);
+     .style("opacity", topic_text_default_opacity)
+     .style("fill", topic_text_default_color);
 }
 
 d3.json("chord.json", function(error, data) {
@@ -224,7 +230,7 @@ d3.json("chord.json", function(error, data) {
   g_topics.append("text")
       .style("text-anchor", "middle")
       .style("font-size", 15)
-      .style("fill", "#aaa")
+      .style("fill", topic_text_default_color)
       .style("opacity", topic_text_default_opacity)
       .attr("id", function(d) {
         return "topic-text-" + d.index;

@@ -105,7 +105,12 @@ function update(source) {
         }
         
       })
-      .style("fill-opacity", 1e-6);
+      .style("fill-opacity", 1e-6)
+    .append("title")
+      .text(function(d) {
+        var type = d.type.charAt(0).toUpperCase() + d.type.slice(1);
+        return type + " " + d.book_id;
+      })
 
   // Transition nodes to their new position.
   var nodeUpdate = node.transition()

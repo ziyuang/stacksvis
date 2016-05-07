@@ -82,7 +82,12 @@ d3.json("015I_force.json", function(error, json) {
       .attr("dx", 0)
       .attr("dy", ".35em")
       .attr("text-anchor", "middle")
-      .text(function(d) { return d.tag });
+      .text(function(d) { return d.tag })
+    .append("title")
+      .text(function(d) {
+        var type = d.type.charAt(0).toUpperCase() + d.type.slice(1);
+        return type + " " + d.book_id;
+      })
 
   force.on("tick", function() {
     

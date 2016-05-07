@@ -130,7 +130,12 @@ function update() {
   nodeEnter.append("text")
       .attr("dy", ".35em")
       .attr("text-anchor", "middle")
-      .text(displayText);
+      .text(displayText)
+    .append("title")
+      .text(function(d) {
+        var type = d.type.charAt(0).toUpperCase() + d.type.slice(1);
+        return type + " " + d.book_id;
+      })
 
   node.select("rect")
       .style("fill", color);
