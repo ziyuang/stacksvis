@@ -131,7 +131,7 @@ def important_theorems(scatter_csv_path, n_top, save_to='top_theorems.csv', grap
     scatter['score'] = scatter['referring'] + scatter['referred']/slope
     top_theorems = scatter.sort_values(by='score', ascending=False).head(n_top+1)
     x1 = (top_theorems.iloc[-1].score + top_theorems.iloc[-2].score) / 2
-    print('(for JavaScript) x1 = %f\tslope = %f' % (x1, slope))
+    print('(for top_theorems.html) x1 = %f\tslope = %f' % (x1, slope))
     # print(top_theorems)
     top_theorems = top_theorems.iloc[:-1]
     if graph is not None:
