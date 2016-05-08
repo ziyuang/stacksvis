@@ -19,21 +19,16 @@ body {
 
 .dot {
   stroke: #000;
+  opacity: 0.7;
 }
 
-/*.tooltip {
-  position: absolute;
-  width: 200px;
-  height: 28px;
-  pointer-events: none;
-}*/
 </style>
 <body>
 <script src="http://d3js.org/d3.v3.min.js"></script>
 
 <script>
-var margin = {top: 20, right: 20, bottom: 30, left: 40},
-    width = 960 - margin.left - margin.right,
+var margin = {top: 0, right: 30, bottom: 30, left: 30},
+    width = 900 - margin.left - margin.right,
     height = 400 - margin.top - margin.bottom;
 
 /* 
@@ -93,7 +88,7 @@ d3.csv("scatter.csv", function(error, data) {
       .attr("x", width)
       .attr("y", -10)
       .style("text-anchor", "end")
-      .text("#Referring");
+      .text("#Cross-referring");
 
   // y-axis
   svg.append("g")
@@ -105,7 +100,7 @@ d3.csv("scatter.csv", function(error, data) {
       .attr("y", 10)
       .attr("dy", ".71em")
       .style("text-anchor", "end")
-      .text("#Referred");
+      .text("#Cross-referred");
 
   // draw dots
   svg.selectAll(".dot")
@@ -142,6 +137,16 @@ d3.csv("scatter.csv", function(error, data) {
       .attr("dy", ".35em")
       .style("text-anchor", "end")
       .text(function(d) { return d;})
+
+  var slope = 1.6848;
+  var x1 = 25.842;
+  var line = svg.append("line")
+      .attr("x1", xScale(x1))
+      .attr("y1", yScale(0))
+      .attr("x2", xScale(0))
+      .attr("y2", yScale(x1*slope))
+      .style("stroke-dasharray", "4,4")
+      .style("stroke", "#000");
 });
 
 </script>

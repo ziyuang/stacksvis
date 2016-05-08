@@ -123,8 +123,33 @@ def tag_scatter(force_json_path, save_to='scatter.csv'):
     scatter_df.to_csv(save_to, index_label='tag', float_format='%d')
 
 
+def important_theorems(scatter_csv_path, n_top, save_to='top_theorems.csv', graph=None):
+    scatter = pd.read_csv(scatter_csv_path, index_col='tag')
+    top_referred = scatter.sort_values(by='referred', ascending=False).head(n_top).referred
+    top_referring = scatter.sort_values(by='referring', ascending=False).head(n_top).referring
+    slope = np.mean(top_referred.values/top_referring.values)
+    scatter['score'] = scatter['referring'] + scatter['referred']/slope
+    top_theorems = scatter.sort_values(by='score', ascending=False).head(n_top+1)
+    x1 = (top_theorems.iloc[-1].score + top_theorems.iloc[-2].score) / 2
+    print('(for JavaScript) x1 = %f\tslope = %f' % (x1, slope))
+    # print(top_theorems)
+    top_theorems = top_theorems.iloc[:-1]
+    if graph is not None:
+        nodes = graph['nodes']
+        chapters = [nodes[tag]['chapter'] for tag in top_theorems.index]
+        sections = [nodes[tag]['section'] for tag in top_theorems.index]
+        book_ids = [nodes[tag]['book_id'] for tag in top_theorems.index]
+        top_theorems['chapter'] = chapters
+        top_theorems['section'] = sections
+        top_theorems['book_id'] = book_ids
+    top_theorems.to_csv(save_to)
+
+
 if __name__ == '__main__':
     # get_graph_json()
     # combine_force_json(folder='force', save_to='force.json')
     # chord_diagram_matrices('force.json', save_to='chord_diagram.json')
-    tag_scatter('force.json', save_to='scatter.csv')
+    # tag_scatter('force.json', save_to='scatter.csv')
+    with open('force.json', 'r') as f:
+        graph = json.load(f)
+        important_theorems('scatter.csv', n_top=10, save_to='top_theorems.csv', graph=graph)

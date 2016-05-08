@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+
+<!-- Example based on http://bl.ocks.org/mbostock/3887118 -->
+<!-- Tooltip example from http://www.d3noob.org/2013/01/adding-tooltips-to-d3js-graph.html -->
+
+<style>
+body {
+  font: 14px "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+table tr.header {
+  text-align: center;
+  border-bottom:1px solid #000;
+}
+
+table td{
+  padding: 3px;
+}
+
+</style>
+
+<body>
+
+<script type="text/javascript" src="http://d3js.org/d3.v3.min.js"></script>
+<script type="text/javascript" src="https://rawgit.com/alexei/sprintf.js/master/src/sprintf.js"></script>
+<script>
+
+d3.csv('top_theorems.csv', function(error, data) {
+  var table = d3.select('body').append('table').attr("rules","cols");
+  var header = table.append('tr').attr('class', 'header');
+  header.selectAll('th')
+    .data(['Tag', 'Chapter', 'Section', '#Cross-referring', '#Cross-referred']).enter()
+    .append('th')
+    .text(function(d) {return d;})
+
+  table.selectAll('tr.row')
+    .data(data).enter()
+    .append('tr')
+    .html(function(d) {
+      var tag_link = sprintf('http://stacks.math.columbia.edu/tag/%s', d.tag);
+      var tag_html = sprintf('<td style="text-align:center;"><a href="%s">%s</a></td>', tag_link, d.tag);
+      var numbering = d.book_id.split('.');
+      var chapter_html = sprintf('<td>%d. %s</td>', numbering[0], d.chapter);
+      var section_html = sprintf('<td>%s</td>', d.section);
+      var cross_reference_html = sprintf('<td style="text-align:center;">%d</td><td style="text-align:center;">%d</td>', d.referring, d.referred);
+      return tag_html + chapter_html + section_html + cross_reference_html;
+    })
+});
+
+
+</script>
+</body>
+</html>

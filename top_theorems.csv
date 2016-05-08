@@ -1,0 +1,11 @@
+tag,type,referring,referred,score,chapter,section,book_id
+00DV,lemma,3,94,58.79390104847825,Commutative Algebra,Nakayama's lemma,10.19.1
+06AG,lemma,56,1,56.5935521388136,More on Morphisms,Infinitesimal deformations of schemes,36.9.3
+04S6,theorem,23,17,33.09038635983117,Bootstrap,Final bootstrap,68.10.1
+00U2,lemma,12,33,31.587220580848747,Commutative Algebra,\'Etale ring maps,10.141.3
+0A21,lemma,24,10,29.935521388135985,Varieties,Algebraic schemes,32.19.3
+01ZM,lemma,7,38,29.554981274916738,Limits of Schemes,Descending relative objects,31.9.1
+06Z0,lemma,8,35,28.774324858475943,Derived Categories of Schemes,Derived category of quasi-coherent modules,35.3.5
+07FJ,lemma,28,1,28.5935521388136,Smoothing Ring Maps,Inseparable residue fields,16.11.4
+01UA,lemma,3,43,28.52274196898473,Morphisms of Schemes,Flat morphisms,28.24.9
+08AR,lemma,21,9,26.341969249322386,Cohomology of Algebraic Spaces,Higher direct images of coherent sheaves,57.19.2
