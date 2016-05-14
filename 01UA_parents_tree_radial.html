@@ -32,7 +32,12 @@ var radius = 800 / 2;
 var tree = d3.layout.tree()
     .size([360, radius - 50])
     .sort(function(a, b) {
-        return a.book_id.localeCompare(b.book_id);
+      var a_book_id = a.book_id.split('.').map(Number);
+      var b_book_id = b.book_id.split('.').map(Number);
+      for (var i = 0; i < a_book_id.length; i++) {
+        if (a_book_id[i] != b_book_id[i])
+          return a_book_id[i] - b_book_id[i];
+      }
     });
 
 var diagonal = d3.svg.diagonal.radial()
@@ -65,8 +70,17 @@ d3.json("01UA_parents_collapsible.json", function(error, root) {
       .attr("class", "node")
       .attr("transform", function(d) { return "rotate(" + (d.x - 90) + ")translate(" + d.y + ")"; })
 
+  function makeTitle(d) {
+    var type = d.type;
+    if (type == 'section')
+      type = 'chapter';
+    return type[0].toUpperCase() + type.slice(1) + ' ' + d.book_id;
+  }
+
   node.append("circle")
-      .attr("r", 4.5);
+      .attr("r", 4.5)
+    .append('title')
+      .text(makeTitle);
 
   node.append("text")
       .attr("dy", function(d) {
@@ -89,12 +103,7 @@ d3.json("01UA_parents_collapsible.json", function(error, root) {
         return isRootOrLeave(d)? d.tag: d.tagName;
       })
     .append('title')
-      .text(function(d) {
-          var type = d.type;
-          if (type == 'section')
-            type = 'chapter';
-          return type[0].toUpperCase() + type.slice(1) + ' ' + d.book_id;
-      });
+      .text(makeTitle);
 });
 
 </script>
