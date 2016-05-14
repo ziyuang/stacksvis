@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.node {
+  cursor: pointer;
+}
+
+.node circle {
+  fill: #fff;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+.node text {
+  font: 10px sans-serif;
+}
+
+.link {
+  fill: none;
+  stroke: #ccc;
+  stroke-width: 1.5px;
+}
+
+</style>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+
+var radius = 800 / 2;
+
+var tree = d3.layout.tree()
+    .size([360, radius - 50])
+    .sort(function(a, b) {
+        return a.book_id.localeCompare(b.book_id);
+    });
+
+var diagonal = d3.svg.diagonal.radial()
+    .projection(function(d) { return [d.y, d.x / 180 * Math.PI]; });
+
+var svg = d3.select("body").append("svg")
+    .attr("width", radius * 2)
+    .attr("height", radius * 2)
+  .append("g")
+    .attr("transform", "translate(" + radius + "," + radius + ")");
+
+function isRootOrLeave(d) {
+  return d.nodeType == 'root' || !d.children;
+}
+
+d3.json("01UA_parents_collapsible.json", function(error, root) {
+  if (error) throw error;
+
+  var nodes = tree.nodes(root);
+
+  var link = svg.selectAll("path.link")
+      .data(tree.links(nodes))
+    .enter().append("path")
+      .attr("class", "link")
+      .attr("d", diagonal);
+
+  var node = svg.selectAll("g.node")
+      .data(nodes)
+    .enter().append("g")
+      .attr("class", "node")
+      .attr("transform", function(d) { return "rotate(" + (d.x - 90) + ")translate(" + d.y + ")"; })
+
+  node.append("circle")
+      .attr("r", 4.5);
+
+  node.append("text")
+      .attr("dy", function(d) {
+        return isRootOrLeave(d)? ".31em": "0em";
+      })
+      .attr("y", function(d) {
+        return isRootOrLeave(d)? 0: 15;
+      })
+      .attr("text-anchor", function(d) {
+        if (isRootOrLeave(d))
+          return d.x < 180 ? "start" : "end";
+        else
+          return "middle";
+      })
+      .attr("transform", function(d) {
+        var angle = d.nodeType == 'root'? 265: 180;
+        return d.x < 180 ? "translate(8)" : "rotate(" + angle + ")translate(-8)";
+      })
+      .text(function(d) {
+        return isRootOrLeave(d)? d.tag: d.tagName;
+      })
+    .append('title')
+      .text(function(d) {
+          var type = d.type;
+          if (type == 'section')
+            type = 'chapter';
+          return type[0].toUpperCase() + type.slice(1) + ' ' + d.book_id;
+      });
+});
+
+</script>

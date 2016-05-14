@@ -5,6 +5,7 @@ from path import Path
 import json
 import numpy as np
 import re
+from collections import defaultdict
 
 
 def get_graph_json():
@@ -145,11 +146,97 @@ def important_theorems(scatter_csv_path, n_top, save_to='top_theorems.csv', grap
     top_theorems.to_csv(save_to)
 
 
+def reverse_force_json(force_json_path, save_to='force_reversed.json'):
+    with open(force_json_path, 'r') as f:
+        graph = json.load(f)
+    nodes = graph['nodes']
+    links = graph['links']
+    for tag, node in nodes.items():
+        node['children'], node['parents'] = node['parents'], node['children']
+    for link in links:
+        link['source'], link['target'] = link['target'], link['source']
+    with open(save_to, 'w') as f:
+        json.dump(graph, f)
+
+
+def chapter_section_table(collapsible_folder, save_to='tag_chapter_section.csv'):
+    table = pd.DataFrame(columns=['chapter', 'section'])
+    for file in Path(collapsible_folder).glob('*.json'):
+        with open(file, 'r') as f:
+            root = json.load(f)
+        chapters = root['children']
+        for chapter in chapters:
+            assert chapter['nodeType'] == 'chapter'
+            sections = chapter['children']
+            for section in sections:
+                assert section['nodeType'] == 'section'
+                for tag in section['children']:
+                    # if tag['type'] != 'chapter' and tag['type'] != 'section':
+                    if tag['tag'] not in table.index:
+                        table.loc[tag['tag']] = [chapter['tag'], section['tag']]
+    table.index.rename('tag', inplace=True)
+    table.sort_index(inplace=True)
+    table.to_csv(save_to)
+
+
+def collapsible_from_tag(tag, graph_file, chapter_section_file, direction='children', include_section=True, save_to=None):
+    with open(graph_file, 'r') as f:
+        graph = json.load(f)
+    chapter_section_info = pd.read_csv(chapter_section_file, index_col='tag')
+    nodes = graph['nodes']
+
+    # tag names only first
+    collapsible = nodes[tag].copy()
+    collapsible['nodeType'] = 'root'
+    if save_to is None:
+        save_to = '%s_%s_collapsible.json' % (tag, direction)
+    children = collapsible[direction]
+    del collapsible['children']
+    del collapsible['parents']
+
+    root_chapter_set = set()
+    chapter_section_dict = defaultdict(set)
+    section_tag_dict = defaultdict(set)
+    chapter_tag_dict = defaultdict(set)
+    for child in children:
+        chapter, section = chapter_section_info.loc[child]
+        root_chapter_set.add(chapter)
+        chapter_section_dict[chapter].add(section)
+        section_tag_dict[section].add(child)
+        chapter_tag_dict[chapter].add(child)
+
+    collapsible['children'] = [nodes[chapter].copy() for chapter in root_chapter_set]
+    for chapter_info in collapsible['children']:
+        del chapter_info['parents']
+        del chapter_info['children']
+        chapter = chapter_info['tag']
+        if include_section:
+            chapter_info['children'] = [nodes[section].copy() for section in chapter_section_dict[chapter]]
+            for section_info in chapter_info['children']:
+                del section_info['parents']
+                del section_info['children']
+                section = section_info['tag']
+                section_info['children'] = [nodes[tag].copy() for tag in section_tag_dict[section]]
+                for tag_info in section_info['children']:
+                    del tag_info['parents']
+                    del tag_info['children']
+        else:
+            chapter_info['children'] = [nodes[tag].copy() for tag in chapter_tag_dict[chapter]]
+            for tag_info in chapter_info['children']:
+                del tag_info['parents']
+                del tag_info['children']
+
+    with open(save_to, 'w') as f:
+        json.dump(collapsible, f, sort_keys=True)
+
+
 if __name__ == '__main__':
     # get_graph_json()
     # combine_force_json(folder='force', save_to='force.json')
     # chord_diagram_matrices('force.json', save_to='chord_diagram.json')
     # tag_scatter('force.json', save_to='scatter.csv')
-    with open('force.json', 'r') as f:
-        graph = json.load(f)
-        important_theorems('scatter.csv', n_top=10, save_to='top_theorems.csv', graph=graph)
+    # with open('force.json', 'r') as f:
+    #     graph = json.load(f)
+    #     important_theorems('scatter.csv', n_top=10, save_to='top_theorems.csv', graph=graph)
+    # chapter_section_table('collapsible', save_to='tag_chapter_section.csv')
+    collapsible_from_tag('01UA', graph_file='force.json', chapter_section_file='tag_chapter_section.csv', include_section=False, direction='parents')
