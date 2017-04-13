@@ -6,9 +6,14 @@ import json
 import numpy as np
 import re
 from collections import defaultdict
+from enum import Enum
+from diacritic import conv_tex_diacritic
 
 
 def get_graph_json():
+    """
+    Fetch all tags and save as json files
+    """
     tags = pd.read_csv('https://raw.githubusercontent.com/stacks/stacks-project/master/tags/tags', header=None, comment='#')[0]
     types = ['force', 'cluster', 'collapsible']
     url_tmpl = 'http://stacks.math.columbia.edu/data/tag/{tag}/graph/{graph_type}'
@@ -26,18 +31,33 @@ def get_graph_json():
                 print(url)
 
 
-def combine_force_json(folder='force', save_to='force.json'):
+def combine_force_json(src_folder='force', save_to='force.json', conv_diacritic=True):
+    """
+    Combine subgraphs into one graph and save it as json file.
+    Both the subgraphs and the whole graph are formatted as understandable by d3.layout.force,
+    which is like
+    {
+        nodes: {tag: {property_key: property_value, ...}},
+        links: [{"source": source_tag, "target": target_tag}]
+    }
+    :param src_folder: the folder that contains all json files of subgraphs
+    :param save_to: saving destination of the whole graph
+    """
     # node: {tag: meta-data + children + parents}
     # link: {source: tag, target: tag}
     graph = {'nodes': {}, 'links': set()}
     nodes = graph['nodes']
     links = graph['links']
     keys_to_remove = ['numberOfChildren', 'size', 'depth']
-    for file in Path(folder).glob('*.json'):
+    for file in Path(src_folder).glob('*.json'):
         with open(file, 'r') as f:
             sub_graph = json.load(f)
         idx2tag = {}
         sub_nodes = sub_graph['nodes']
+        if conv_diacritic:
+            for node in sub_nodes:
+                node['chapter'] = conv_tex_diacritic(node['chapter'])
+                node['section'] = conv_tex_diacritic(node['section'])
         sub_links = sub_graph['links']
         for idx, node in enumerate(sub_nodes):
             tag = node['tag']
@@ -60,53 +80,155 @@ def combine_force_json(folder='force', save_to='force.json'):
         node['children'] = list(node['children'])
         node['parents'] = list(node['parents'])
     graph['links'] = [{'source': source, 'target': target} for source, target in links]
+
     with open(save_to, 'w') as f:
         json.dump(graph, f, sort_keys=True, indent=4)
 
 
-def chord_diagram_matrices(force_json_path, save_to='chord_diagram.json'):
+def parse(chapters_tex='chapters.tex', skip_topics=None, skip_chapters=None):
+    """
+    :return: 
+        {'chapters': [chapter_names], 
+        'topics':[topic_names], 
+        'topic_ranges':[(chapter_start, chapter_end)]}
+        (inclusive end)
+    """
+    class State(Enum):
+        TOPIC = 0
+        CHAPTER = 1
+
+    chapters = []
+    topic_names = []
+    topic_ranges_txt = []
+    inv_topic_range_tbl = {}
+    with open(chapters_tex, 'r') as f:
+        topic_patt = re.compile(r'^[A-Za-z\s]+$')
+        chapter_patt = re.compile(r'^\\item *\\hyperref\[(.+?)\]{(.+?)}$')
+        prev = State.TOPIC
+        ch_start = ''
+        ch_end = ''
+        for line in f:
+            line = line.strip()
+            topic_match = topic_patt.match(line)
+            chapter_match = chapter_patt.match(line)
+            if topic_match:
+                t_name = topic_match.group(0)
+                topic_names.append(t_name)
+                if prev == State.CHAPTER:
+                    ch_end = chapters[-1]
+                    inv_topic_range_tbl[ch_end] = len(topic_ranges_txt)
+                    topic_ranges_txt.append([ch_start,ch_end])
+                prev = State.TOPIC
+            elif chapter_match:
+                ch_name = chapter_match.group(2)
+
+                chapters.append(ch_name)
+                if prev == State.TOPIC:
+                    ch_start = ch_name
+                    inv_topic_range_tbl[ch_start] = len(topic_ranges_txt)
+                prev = State.CHAPTER
+        ch_end = chapters[-1]
+        inv_topic_range_tbl[ch_end] = len(topic_ranges_txt)
+        topic_ranges_txt.append([ch_start,ch_end])
+
+    chapter_ids = list(range(1, len(chapters)+1))
+
+    if skip_topics is not None:
+        for topic in skip_topics:
+            t_idx = topic_names.index(topic)
+            ch_start = topic_ranges_txt[t_idx][0]
+            ch_start_idx = chapters.index(ch_start)
+            ch_end = topic_ranges_txt[t_idx][1]
+            ch_end_idx = chapters.index(ch_end)
+            del chapters[ch_start_idx:(ch_end_idx+1)]
+            del chapter_ids[ch_start_idx:(ch_end_idx+1)]
+            del topic_names[t_idx]
+            del topic_ranges_txt[t_idx]
+    if skip_chapters is not None:
+        for chapter in skip_chapters:
+            # could be removed when removing topics already
+            if chapter in chapters:
+                ch_idx = chapters.index(chapter)
+                if chapter in inv_topic_range_tbl:
+                    # need to change the topic range
+                    t_idx = inv_topic_range_tbl[chapter]
+                    ch_start, ch_end = topic_ranges_txt[t_idx]
+                    if ch_start == ch_end:
+                        del topic_names[t_idx]
+                        del topic_ranges_txt[t_idx]
+                    else:
+                        if ch_start == chapter:
+                            ch_new_start = chapters[ch_idx + 1]
+                            topic_ranges_txt[t_idx][0] = ch_new_start
+                            inv_topic_range_tbl[ch_new_start] = t_idx
+                            del inv_topic_range_tbl[ch_start]
+                        else:
+                            assert ch_end == chapter
+                            ch_new_end = chapters[ch_idx - 1]
+                            topic_ranges_txt[t_idx][1] = ch_new_end
+                            inv_topic_range_tbl[ch_new_end] = t_idx
+                            del inv_topic_range_tbl[ch_end]
+
+                del chapters[ch_idx]
+                del chapter_ids[ch_idx]
+
+    assert len(topic_names) == len(topic_ranges_txt)
+    assert len(chapters) == len(chapter_ids)
+    topic_ranges = [[chapters.index(t_range[0]), chapters.index(t_range[1])] for t_range in topic_ranges_txt]
+    return {'chapters': chapters, 'chapter_ids': chapter_ids, 'topics': topic_names, 'topic_ranges': topic_ranges}
+
+
+def chord_diagram_matrices(force_json='force.json', chapters_tex='stacks-project/chapters.tex', save_to='chord_diagram.json'):
+    """
+    Create the adjacency matrices between chapters and topics.
+    In detail: 
+    :param force_json: path of the tag-reference graph
+    :param chapters_tex: path of chapters.tex
+    :param save_to: where to save the adjacency matrices
+    """
     # rows/columns: topics/chapters
     # chapters: 3~88
     # mat(i,j) = #links from topic/chapter i to topic/chapter j
     # return {'chapters': chapters, 'chapter_matrix': chapter_matrix}
 
-    with open(force_json_path, 'r') as f:
+    with open(force_json, 'r') as f:
         graph = json.load(f)
     nodes = graph['nodes']
     links = graph['links']
 
-    chapters = ["Set Theory", "Categories", "Topology", "Sheaves on Spaces", "Sites and Sheaves", "Stacks", "Fields", "Commutative Algebra", "Brauer groups", "Homological Algebra", "Derived Categories", "Simplicial Methods", "More on Algebra", "Smoothing Ring Maps", "Sheaves of Modules", "Modules on Sites", "Injectives", "Cohomology of Sheaves", "Cohomology on Sites", "Differential Graded Algebra", "Divided Power Algebra", "Hypercoverings", "Schemes", "Constructions of Schemes", "Properties of Schemes", "Morphisms of Schemes", "Cohomology of Schemes", "Divisors", "Limits of Schemes", "Varieties", "Topologies on Schemes", "Descent", "Derived Categories of Schemes", "More on Morphisms", "More on Flatness", "Groupoid Schemes", "More on Groupoid Schemes", "\\'Etale Morphisms of Schemes", "Chow Homology and Chern Classes", "Intersection Theory", "Picard Schemes of Curves", "Adequate Modules", "Dualizing Complexes", "Algebraic Curves", "Resolution of Surfaces", "Semistable Reduction", "Fundamental Groups of Schemes", "\\'Etale Cohomology", "Crystalline Cohomology", "Pro-\\'etale Cohomology", "Algebraic Spaces", "Properties of Algebraic Spaces", "Morphisms of Algebraic Spaces", "Decent Algebraic Spaces", "Cohomology of Algebraic Spaces", "Limits of Algebraic Spaces", "Divisors on Algebraic Spaces", "Algebraic Spaces over Fields", "Topologies on Algebraic Spaces", "Descent and Algebraic Spaces", "Derived Categories of Spaces", "More on Morphisms of Spaces", "Pushouts of Algebraic Spaces", "Groupoids in Algebraic Spaces", "More on Groupoids in Spaces", "Bootstrap", "Quotients of Groupoids", "Simplicial Spaces", "Formal Algebraic Spaces", "Restricted Power Series", "Resolution of Surfaces Revisited", "Formal Deformation Theory", "Deformation Theory", "The Cotangent Complex", "Algebraic Stacks", "Examples of Stacks", "Sheaves on Algebraic Stacks", "Criteria for Representability", "Artin's axioms", "Quot and Hilbert Spaces", "Properties of Algebraic Stacks", "Morphisms of Algebraic Stacks", "Cohomology of Algebraic Stacks", "Derived Categories of Stacks", "Introducing Algebraic Stacks", "More on Morphisms of Stacks"]
+    skipped_chapters = ['Introduction', 'Conventions']
+    skip_topics = ['Miscellany']
+    chapter_info = parse(chapters_tex=chapters_tex, skip_topics=skip_topics, skip_chapters=skipped_chapters)
+    chapters = chapter_info['chapters']
     n_chapters = len(chapters)
     chapter_mat = np.zeros((n_chapters, n_chapters), dtype=int)
 
-    # see chapters.tex
-    topics = ["Preliminaries", "Schemes", "Topics in Scheme Theory", "Algebraic Spaces", "Topics in Geometry", "Deformation Theory", "Algebraic Stacks"]
+    topics = chapter_info['topics']
     n_topics = len(topics)
-    chapter_idx_ranges = [(0, 22), (22, 38), (38, 50), (50, 66), (66, 70), (70, 74), (76, 86)]
+    chapter_idx_ranges = chapter_info['topic_ranges']
+    chapter_id2idx = {ch: i for i, ch in enumerate(chapter_info['chapter_ids'])}
 
     t2c = np.zeros((n_topics, n_chapters), dtype=int)
     for i, rng in enumerate(chapter_idx_ranges):
         start, stop = rng
+        stop += 1
         t2c[i, start:stop] = 1
-        # print(topics[i])
-        # for j in range(start, stop):
-        #     print('\t(%d) %s' % (j+3, chapters[j]))
 
     # return row/column index for mat
-    def tag2idx(tag):
+    def tag2cid(tag):
         book_id = nodes[tag]['book_id']
-        chapter = int(re.match(r'\d+', book_id).group(0))
-        return chapter - 3
+        chapter_id = int(re.match(r'\d+', book_id).group(0))
+        return chapter_id
 
     for link in links:
         source = link['source']
         target = link['target']
-        source_idx = tag2idx(source)
-        target_idx = tag2idx(target)
+        source_id = tag2cid(source)
+        target_id = tag2cid(target)
 
-        if source_idx < n_chapters and target_idx < n_chapters:
-            # skip chapter 89 (Example) and chapter 94 (Obsolete)
-            chapter_mat[source_idx, target_idx] += 1
+        if source_id in chapter_id2idx and target_id in chapter_id2idx:
+            chapter_mat[chapter_id2idx[source_id], chapter_id2idx[target_id]] += 1
+
     topic_mat = t2c.dot(chapter_mat).dot(t2c.T)
     with open(save_to, 'w') as f:
         json.dump({'topics': topics, 'topic_matrix': topic_mat.tolist(), 'chapters': chapters, 'chapter_matrix': chapter_mat.tolist()}, f, sort_keys=True, indent=4)
@@ -132,7 +254,7 @@ def important_theorems(scatter_csv_path, n_top, save_to='top_theorems.csv', grap
     scatter['score'] = scatter['referring'] + scatter['referred']/slope
     top_theorems = scatter.sort_values(by='score', ascending=False).head(n_top+1)
     x1 = (top_theorems.iloc[-1].score + top_theorems.iloc[-2].score) / 2
-    print('(for top_theorems.html) x1 = %f\tslope = %f' % (x1, slope))
+    print('(for scatter.html) x1 = %f\tslope = %f' % (x1, slope))
     # print(top_theorems)
     top_theorems = top_theorems.iloc[:-1]
     if graph is not None:
@@ -140,8 +262,6 @@ def important_theorems(scatter_csv_path, n_top, save_to='top_theorems.csv', grap
         chapters = [nodes[tag]['chapter'] for tag in top_theorems.index]
         sections = [nodes[tag]['section'] for tag in top_theorems.index]
         book_ids = [nodes[tag]['book_id'] for tag in top_theorems.index]
-        top_theorems['chapter'] = chapters
-        top_theorems['section'] = sections
         top_theorems['book_id'] = book_ids
     top_theorems.to_csv(save_to)
 
@@ -232,11 +352,11 @@ def collapsible_from_tag(tag, graph_file, chapter_section_file, direction='child
 
 if __name__ == '__main__':
     # get_graph_json()
-    # combine_force_json(folder='force', save_to='force.json')
-    # chord_diagram_matrices('force.json', save_to='chord_diagram.json')
-    # tag_scatter('force.json', save_to='scatter.csv')
-    # with open('force.json', 'r') as f:
-    #     graph = json.load(f)
-    #     important_theorems('scatter.csv', n_top=10, save_to='top_theorems.csv', graph=graph)
-    # chapter_section_table('collapsible', save_to='tag_chapter_section.csv')
+    combine_force_json(src_folder='force', save_to='force.json')
+    chord_diagram_matrices('force.json', save_to='chord_diagram.json')
+    tag_scatter('force.json', save_to='scatter.csv')
+    with open('force.json', 'r') as f:
+        graph = json.load(f)
+        important_theorems('scatter.csv', n_top=12, save_to='top_theorems.csv', graph=graph)
+    chapter_section_table('collapsible', save_to='tag_chapter_section.csv')
     collapsible_from_tag('01UA', graph_file='force.json', chapter_section_file='tag_chapter_section.csv', include_section=False, direction='parents')

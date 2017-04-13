@@ -73,16 +73,22 @@ var path_topic_texts_inner = function(d, i) {
   return simple_arc(radius, d.startAngle-Math.PI/2, d.endAngle-Math.PI/2, 1);
 }
 
+var path_topic_texts_outer_flipped = function(d, i) {
+  var radius = outerRadius + 15;
+  return simple_arc(radius, d.endAngle-Math.PI/2, d.startAngle-Math.PI/2, 0);
+}
+
 var path_topic_texts_outer = function(d, i) {
   var radius = outerRadius + 5;
   return simple_arc(radius, d.startAngle-Math.PI/2, d.endAngle-Math.PI/2, 1);
 }
 
+var margin = 15;
 var svg = d3.select("body").append("svg")
-    .attr("width", outerRadius * 2)
-    .attr("height", outerRadius * 2)
+    .attr("width", (outerRadius+margin) * 2)
+    .attr("height", (outerRadius+margin) * 2)
     .append("g")
-    .attr("transform", "translate(" + outerRadius + "," + outerRadius + ")");
+    .attr("transform", "translate(" + (outerRadius+margin) + "," + (outerRadius+margin) + ")");
 
 function fade_chapters(opacity) {
   return function(g, i) {
@@ -142,7 +148,7 @@ function topic_mouseout(g, i) {
      .style("fill", topic_text_default_color);
 }
 
-d3.json("chord.json", function(error, data) {
+d3.json("chord_diagram.json", function(error, data) {
   if (error) throw error;
   var chapters = data['chapters'];
   var topics = data['topics'];
@@ -170,6 +176,16 @@ d3.json("chord.json", function(error, data) {
         return "topic-texts-inner-" + d.index;
       })
       .attr("d", path_topic_texts_inner);
+
+  defs.selectAll(".text-outer-flipped")
+      .data(chord_topics.groups)
+      .enter()
+      .append("path")
+      .attr("class", "text-outer-flipped")
+      .attr("id", function(d) {
+        return "topic-texts-outer-flipped-" + d.index;
+      })
+      .attr("d", path_topic_texts_outer_flipped);
 
   defs.selectAll(".text-outer")
       .data(chord_topics.groups)
@@ -240,14 +256,19 @@ d3.json("chord.json", function(error, data) {
       .attr("xlink:href", function(d) {
         var degree = (d.startAngle + d.endAngle) / 2;
         degree = degree * 180 / Math.PI;
-        if (d.index != 5) {
+        inner_text_indices = new Set([5]);
+        if (inner_text_indices.has(d.index)) {
           if (degree < 90 || degree > 270)
             return "#topic-texts-inner-" + d.index; 
           else
             return "#topic-texts-inner-flipped-" + d.index;
         }
-        else
-          return "#topic-texts-outer-" + d.index
+        else {
+        	if (degree < 90 || degree > 270)
+          	return "#topic-texts-outer-" + d.index;
+          else
+          	return "#topic-texts-outer-flipped-" + d.index;
+        }
       })
       .text(function(d) { return topics[d.index]; });
 

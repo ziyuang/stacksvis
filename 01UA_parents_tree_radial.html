@@ -96,7 +96,7 @@ d3.json("01UA_parents_collapsible.json", function(error, root) {
         return d.x < 180 ? "translate(8)" : "rotate(" + angle + ")translate(-8)";
       })
       .text(function(d) {
-        return isRootOrLeave(d)? d.tag: d.tagName;
+        return isRootOrLeave(d)? d.tag: d.chapter;
       })
     .append('title')
       .text(makeTitle);
